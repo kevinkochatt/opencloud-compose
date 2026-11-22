@@ -1,0 +1,29 @@
+services:
+  opencloud:
+    networks:
+      - default
+      - ondemand
+    labels:
+      caddy: drive.kevinkochatt.com
+      caddy.reverse_proxy: "{{upstreams 9200}}"
+    ports:
+      - 9200:9200
+    volumes:
+      - type: bind
+        source: ${OC_CONFIG_DIR:?OC_CONFIG_DIR not set}
+        target: /etc/opencloud
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${OC_DATA_DIR:?OC_DATA_DIR not set}
+        target: /var/lib/opencloud
+        bind:
+          create_host_path: false
+    # refuse to start unless the real SSD is mounted (marker file lives on the SSD)
+    command:
+      - -c
+      - "[ -f /etc/opencloud/.ssd-ok ] && [ -f /var/lib/opencloud/.ssd-ok ] || { echo 'SSD not mounted, refusing to start'; exit 1; }; opencloud init || true; opencloud server"
+
+networks:
+  ondemand:
+    external: true
